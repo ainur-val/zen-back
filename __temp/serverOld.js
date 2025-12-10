@@ -25,12 +25,16 @@ const MIME_TYPES = {
   '.txt': 'text/plain'
 };
 
- // Проверяет, является ли путь запросом к статическому файлу
+/**
+ * Проверяет, является ли путь запросом к статическому файлу
+ */
 const isAssetFile = (pathname) => {
   return pathname.startsWith('/assets/');
 };
 
-// Обслуживает статический файл из папки assets
+/**
+ * Обслуживает статический файл из папки assets
+ */
 const serveAssetFile = (filePath, res) => {
   const ext = path.extname(filePath);
   const contentType = MIME_TYPES[ext] || 'application/octet-stream';
@@ -54,20 +58,40 @@ const serveAssetFile = (filePath, res) => {
   });
 };
 
- // Основной обработчик запросов
+/**
+ * Основной обработчик запросов
+ */
 const handleServerRequest = (req, res) => {
   const parsedUrl = parse(req.url, true);
   const { pathname } = parsedUrl;
 
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET');
+  // Логируем запрос
+  console.log(`${req.method} ${pathname}`);
 
+  // CORS заголовки
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+
+  // Обработка OPTIONS запросов
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  // API: GET /api/data
   if (req.method === 'GET' && pathname === '/api/data') {
+    const response = {
+      message: 'Data retrieved successfully',
+      timestamp: new Date().toISOString(),
+      data: data
+    };
 
     res.writeHead(200, {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-cache'
     });
-    res.end(JSON.stringify(data));
+    res.end(JSON.stringify(response, null, 2));
     return;
   }
 
@@ -118,6 +142,7 @@ const handleServerRequest = (req, res) => {
   }));
 };
 
+// Создаем и запускаем сервер
 const server = http.createServer(handleServerRequest);
 
 server.listen(PORT, () => {
@@ -126,6 +151,7 @@ server.listen(PORT, () => {
   console.log(`📁 Assets: http://localhost:${PORT}/assets/`);
 });
 
+// Graceful shutdown
 process.on('SIGINT', () => {
   console.log('\n🛑 Stopping server...');
   server.close(() => {
